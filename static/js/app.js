@@ -1,3 +1,4 @@
+// Function to handle student login and fetch their schedule
 function fetchStudentSchedule() {
     const studentId = document.getElementById('student-id').value;
     const password = document.getElementById('login-password').value; // Get the password input
@@ -12,14 +13,28 @@ function fetchStudentSchedule() {
     .then(response => response.json())
     .then(data => {
         if (data.error) {
-            alert(data.error); // Show error message
+            alert(data.error); // Show error message if login fails
         } else {
-            displaySchedule(data); // Display the student's schedule if login is successful
+            // Display an alert if a class starts within 15 minutes
+            if (data.alert) {
+                const alertContainer = document.getElementById('alert-container');
+                alertContainer.innerHTML = ''; // Clear previous alerts
+                const alertDiv = document.createElement('div');
+                alertDiv.innerText = data.alert;
+                alertDiv.style.color = data.alert_color; // Set color based on backend response
+                alertDiv.style.fontWeight = 'bold';
+                alertDiv.style.marginBottom = '10px'; // Add some spacing
+                alertContainer.appendChild(alertDiv);
+            }
+
+            // Pass the student object to the displaySchedule function
+            displaySchedule(data.student);
         }
     })
     .catch(error => console.error('Error:', error));
 }
 
+// Function to display the student's schedule
 function displaySchedule(studentData) {
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('schedule-section').style.display = 'block';
@@ -40,6 +55,7 @@ function displaySchedule(studentData) {
     });
 }
 
+// Function to view course details
 function viewCourseDetails(courseNumber) {
     fetch(`http://127.0.0.1:5000/course/${courseNumber}`)
     .then(response => response.json())

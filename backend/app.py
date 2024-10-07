@@ -1,6 +1,7 @@
 import re
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS to allow communication with the frontend
@@ -20,7 +21,7 @@ students = {
                 "section_number": "001",
                 "meeting_room": "Room 2125",
                 "meeting_days": "MW",
-                "meeting_times": "5:30pm - 6:45pm",
+                "meeting_times": "17:30 - 18:45",
                 "instructor_name": "Dr. Ugo Etudo",
                 "num_students": 30,
                 "description": "An introduction to systems development.",
@@ -33,7 +34,7 @@ students = {
         "last_name": "Pollamreddy",
         "semester": "Fall",
         "year": 2024,
-        "password": "def",
+        "password": "SecurePass2@",
         "courses": [
             {
                 "course_number": "INFO540",
@@ -41,7 +42,7 @@ students = {
                 "section_number": "002",
                 "meeting_room": "Room 202",
                 "meeting_days": "TTh",
-                "meeting_times": "1:00 PM - 2:30 PM",
+                "meeting_times": "17:30 - 18:45",
                 "instructor_name": "Dr. White",
                 "num_students": 25,
                 "description": "A course on data analysis techniques.",
@@ -53,7 +54,7 @@ students = {
                 "section_number": "003",
                 "meeting_room": "Room 303",
                 "meeting_days": "MWF",
-                "meeting_times": "9:00 AM - 10:00 AM",
+                "meeting_times": "09:00 - 10:00",
                 "instructor_name": "Prof. Brown",
                 "num_students": 50,
                 "description": "Basic concepts in computer science.",
@@ -66,7 +67,7 @@ students = {
         "last_name": "Prasanna",
         "semester": "Fall",
         "year": 2024,
-        "password": "ghi",
+        "password": "SecurePass3@",
         "courses": [
             {
                 "course_number": "INFO530",
@@ -74,7 +75,7 @@ students = {
                 "section_number": "001",
                 "meeting_room": "Room B2125",
                 "meeting_days": "MW",
-                "meeting_times": "5:30pm - 6:45pm",
+                "meeting_times": "17:30 - 18:45",
                 "instructor_name": "Dr. Ugo Etudo",
                 "num_students": 30,
                 "description": "An introduction to systems development.",
@@ -87,7 +88,7 @@ students = {
         "last_name": "Smith",
         "semester": "Fall",
         "year": 2024,
-        "password": "jkl",
+        "password": "SecurePass4@",
         "courses": [
             {
                 "course_number": "MATH200",
@@ -95,7 +96,7 @@ students = {
                 "section_number": "004",
                 "meeting_room": "Room 404",
                 "meeting_days": "TTh",
-                "meeting_times": "11:00 AM - 12:30 PM",
+                "meeting_times": "11:00 - 12:30",
                 "instructor_name": "Dr. Green",
                 "num_students": 40,
                 "description": "Advanced calculus concepts.",
@@ -107,7 +108,7 @@ students = {
                 "section_number": "005",
                 "meeting_room": "Room 505",
                 "meeting_days": "MWF",
-                "meeting_times": "2:00 PM - 3:00 PM",
+                "meeting_times": "14:00 - 15:00",
                 "instructor_name": "Dr. Blue",
                 "num_students": 35,
                 "description": "Introduction to classical mechanics.",
@@ -116,7 +117,6 @@ students = {
         ]
     }
 }
-
 
 # Function to validate password with constraints
 def is_valid_password(password):
@@ -128,6 +128,26 @@ def is_valid_password(password):
         return False
     return True
 
+# Function to check if login time is 15 minutes before class
+def is_login_before_class(course):
+    current_time = datetime.now().strftime("%H:%M")  # Get current time
+    class_times = course['meeting_times'].split('-')  # Split meeting times by '-'
+    class_start_time = class_times[0].strip()  # Extract start time and remove extra spaces
+
+    try:
+        # Convert time strings to datetime objects for comparison
+        current_time_obj = datetime.strptime(current_time, "%H:%M")
+        class_start_time_obj = datetime.strptime(class_start_time, "%H:%M")
+
+        # Calculate time difference
+        time_diff = class_start_time_obj - current_time_obj
+
+        # Check if login is within 15 minutes before class starts
+        return 0 < time_diff.total_seconds() <= 15 * 60
+    except ValueError as e:
+        print(f"Error parsing time: {e}")
+        return False
+
 # Route to handle student login
 @app.route('/login', methods=['POST'])
 def login():
@@ -138,7 +158,17 @@ def login():
     if student:
         # In practice, you should compare hashed passwords
         if password == student['password']:
-            return jsonify(student), 200
+            # Check if any course is about to start in 15 minutes
+            for course in student['courses']:
+                if is_login_before_class(course):
+                    return jsonify({
+                        "message": "Login successful",
+                        "alert": f"Your class {course['course_name']} starts in 15 minutes!",
+                        "alert_color": "red",
+                        "student": student
+                    }), 200
+
+            return jsonify({"message": "Login successful", "student": student}), 200
         else:
             return jsonify({"error": "Invalid password"}), 401
     else:
