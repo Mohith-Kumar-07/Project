@@ -1,9 +1,9 @@
-# student data (backend)
+import re
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS to allow communication with frontend
+CORS(app)  # Enable CORS to allow communication with the frontend
 
 # Sample data for demonstration
 students = {
@@ -12,6 +12,7 @@ students = {
         "last_name": "Rehman",
         "semester": "Fall",
         "year": 2024,
+        "password": "SecurePass1@",  # Example password
         "courses": [
             {
                 "course_number": "INFO530",
@@ -20,7 +21,7 @@ students = {
                 "meeting_room": "Room 2125",
                 "meeting_days": "MW",
                 "meeting_times": "5:30pm - 6:45pm",
-                "instructor_name": "Dr. Ugo Etudo",  # Fixed missing closing quotation mark here
+                "instructor_name": "Dr. Ugo Etudo",
                 "num_students": 30,
                 "description": "An introduction to systems development.",
                 "modality": "Hybrid"
@@ -32,6 +33,7 @@ students = {
         "last_name": "Pollamreddy",
         "semester": "Fall",
         "year": 2024,
+        "password": "def",
         "courses": [
             {
                 "course_number": "INFO540",
@@ -64,6 +66,7 @@ students = {
         "last_name": "Prasanna",
         "semester": "Fall",
         "year": 2024,
+        "password": "ghi",
         "courses": [
             {
                 "course_number": "INFO530",
@@ -84,6 +87,7 @@ students = {
         "last_name": "Smith",
         "semester": "Fall",
         "year": 2024,
+        "password": "jkl",
         "courses": [
             {
                 "course_number": "MATH200",
@@ -113,13 +117,30 @@ students = {
     }
 }
 
+
+# Function to validate password with constraints
+def is_valid_password(password):
+    if (len(password) < 8 or
+        not re.search("[a-z]", password) or
+        not re.search("[A-Z]", password) or
+        not re.search("[0-9]", password) or
+        not re.search("[@#$%^&+=]", password)):
+        return False
+    return True
+
 # Route to handle student login
 @app.route('/login', methods=['POST'])
 def login():
     student_id = request.json.get('student_id')
+    password = request.json.get('password')
+
     student = students.get(student_id)
     if student:
-        return jsonify(student), 200
+        # In practice, you should compare hashed passwords
+        if password == student['password']:
+            return jsonify(student), 200
+        else:
+            return jsonify({"error": "Invalid password"}), 401
     else:
         return jsonify({"error": "Student not found"}), 404
 
@@ -132,5 +153,33 @@ def course_details(course_number):
                 return jsonify(course), 200
     return jsonify({"error": "Course not found"}), 404
 
+# Route to register a new student
+@app.route('/register', methods=['POST'])
+def register():
+    student_id = request.json.get('student_id')
+    first_name = request.json.get('first_name')
+    last_name = request.json.get('last_name')
+    password = request.json.get('password')
+
+    # Validate password
+    if not is_valid_password(password):
+        return jsonify({"error": "Password must be at least 8 characters long, contain one lowercase letter, one uppercase letter, one number, and one special character."}), 400
+
+    # Check if student already exists
+    if student_id in students:
+        return jsonify({"error": "Student already exists"}), 400
+    else:
+        # Register the student (In practice, you should hash the password before storing it)
+        students[student_id] = {
+            "first_name": first_name,
+            "last_name": last_name,
+            "semester": "Fall",  # Default value; you can adjust as needed
+            "year": 2024,        # Default value; adjust as necessary
+            "password": password,
+            "courses": []
+        }
+        return jsonify({"message": "Student registered successfully"}), 201
+
+# Fix the main entry point
 if __name__ == '__main__':
     app.run(debug=True)

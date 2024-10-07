@@ -1,20 +1,20 @@
-// frontend/static/js/app.js
 function fetchStudentSchedule() {
     const studentId = document.getElementById('student-id').value;
+    const password = document.getElementById('login-password').value; // Get the password input
 
     fetch('http://127.0.0.1:5000/login', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ student_id: studentId }),
+        body: JSON.stringify({ student_id: studentId, password: password }), // Include password in the request body
     })
     .then(response => response.json())
     .then(data => {
         if (data.error) {
-            alert(data.error);
+            alert(data.error); // Show error message
         } else {
-            displaySchedule(data);
+            displaySchedule(data); // Display the student's schedule if login is successful
         }
     })
     .catch(error => console.error('Error:', error));
